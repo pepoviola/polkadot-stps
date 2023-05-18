@@ -1,0 +1,60 @@
+# This is a basic workflow that is manually triggered
+name: Manual workflow
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch
+
+jobs:
+  test-code:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: ./utils
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        components: rustfmt, clippy
+        target: wasm32-unknown-unknown
+        override: true
+        default: true
+
+
+    - name: Check Code
+      run: cargo check
+
+    - name: build sender
+      working-directory: ./utils/sender
+      run: |
+        cargo build --features=tick --release
+        mv ./target/release/sender ./target/release/sender-tick
+        cargo build --features=rococo --release
+        mv ./target/release/sender ./target/release/sender-rococo
+
+    - name: build tps
+      working-directory: ./utils/tps
+      run: |
+        cargo build --features=tick --release
+        mv ./target/release/tps ./target/release/tps-tick
+        cargo build --features=rococo --release
+        mv ./target/release/tps ./target/release/tps-rococo
+
+    - name: release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      id: create_release
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: true
+        files: |
+          ./sender/target/release/sender-tick
+          ./sender/target/release/sender-rococo
+          ./tps/target/release/tps-tick
+          ./tps/target/release/tps-rococo
