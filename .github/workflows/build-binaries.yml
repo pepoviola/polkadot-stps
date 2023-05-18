@@ -17,6 +17,17 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
+    # Steps taken from https://github.com/actions/cache/blob/master/examples.md#rust---cargo
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -53,6 +64,7 @@ jobs:
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: true
+        automatic_release_tag: "test"
         files: |
           ./sender/target/release/sender-tick
           ./sender/target/release/sender-rococo
